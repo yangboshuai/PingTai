@@ -1,12 +1,21 @@
 #!/usr/bin/ruby
 # encoding: utf-8
 
-require 'lib/function.rb'
+require 'lib/function/public.rb'
+require 'lib/function/login.rb'
+require 'lib/function/roles.rb'
+require 'lib/function/organization.rb'
+require 'lib/function/user.rb'
 require 'lib/variable.rb'
+require 'test/unit'
 
 class TestModule05 <Test::Unit::TestCase
 
-  include Function  
+  include Function::PublicFunction
+  include Function::Login
+  include Function::Organization
+  include Function::User
+  include Function::Roles
 
   @@modulename='TestModule05_role'
   @@testcase=''
@@ -15,44 +24,64 @@ class TestModule05 <Test::Unit::TestCase
   @@expected=''
   @@reality=''
   
-  class << self
-  
-    include Function
-    
-    def startup
-      createExcel
-    end
-
-    def shutdown
-      closeExcel
-    end
-  end
-  
-################################
-#        测试数据
-################################
+  #测试数据
   TESTDATA_ORGNAME='OrgTest'
   TESTDATA_USERNAME='UserTest'
   TESTDATA_ROLENAME='RoleTest'
-  TESTDATA_EDITROLENAME='editRoleTest'
-################################
+  TESTDATA_EDITROLENAME='editRoleTest'  
+  
+  class << self
+    
+    include Function::PublicFunction
+    include Function::Login
+    
+    def startup
+    
+      $logger.info(@@modulename+"Started>>>>>>>>>>>>>>>>>>>") 
+      p @@modulename+"Started>>>>>>>>>>>>>>>>>>>"
+      
+      createExcel      
+      openUrl
+      login       
+    end
 
-   def setup
+    def shutdown
+    
+      closeExcel
+      quit
+      
+      $logger.info(@@modulename+"Over<<<<<<<<<<<<<<<<<<<") 
+      p @@modulename+"Over<<<<<<<<<<<<<<<<<<<"
+    end
+  end
+
+  def setup
     super
-    createBeginLog    
-    openUrl
-    login 
+    createBeginLog
+  end
+  
+  def teardown  
+    super
+    gotoHomepage
+    
+    writeResult(@@modulename,@@testcase,@@result,@@msg,@@expected,@@reality)
+    assert @@result,@@testcase+"failed"
+
+    @@result=false
+    @@msg='error raised.please check the log.'    
   end
   
   def test05_001
     
     @@testcase="Test05_001:Roles add"
     $logger.info(@@testcase)
+    
     begin
+    
     addRoles(TESTDATA_ROLENAME,'addRoleTest')
     logout
     
-    #approve user
+    #approve roles
     login('secadmin','123456')
     approveRoles
     logout
@@ -69,7 +98,8 @@ class TestModule05 <Test::Unit::TestCase
   def test05_002
     
     @@testcase="Test05_002:Roles edit"
-    $logger.info(@@testcase)    
+    $logger.info(@@testcase) 
+       
     begin
     
     editRoles(TESTDATA_ROLENAME,TESTDATA_EDITROLENAME,'editRoleTest')    #删除Organization
@@ -85,18 +115,18 @@ class TestModule05 <Test::Unit::TestCase
     
     @@testcase="Test05_003:Roles delete"
     $logger.info(@@testcase)
+    
     begin
     
     deleteRoles(TESTDATA_EDITROLENAME)
     logout
     
-    #approve roles
+    #approveDeleteRoles
     login('secadmin','123456')
     approveDeleteRoles
     logout
     
-    login
-    
+    login    
     @@result,@@msg,@@expected,@@reality=validateDeleteRoles(roleName=TESTDATA_EDITROLENAME)
     
     rescue Exception=>$e
@@ -110,11 +140,11 @@ class TestModule05 <Test::Unit::TestCase
     $logger.info(@@testcase)
     begin
     
-    ###############准备测试数据#################
-    addOrganization(name=TESTDATA_ORGNAME)
-    
+    #-----------------准备测试数据----------------------------
+    addOrganization(name=TESTDATA_ORGNAME)    
     addUser(organizationName=TESTDATA_ORGNAME,name=TESTDATA_USERNAME,loginName=TESTDATA_USERNAME)
     logout
+    
     #approve user
     login('secadmin','123456')
     approveUser
@@ -122,7 +152,8 @@ class TestModule05 <Test::Unit::TestCase
     
     login    
     addRoles(TESTDATA_ROLENAME)
-    logout    
+    logout
+     
     #approve Roles
     login('secadmin','123456')
     approveRoles
@@ -130,7 +161,7 @@ class TestModule05 <Test::Unit::TestCase
     
     login
     completeRoles
-    ########################################
+    #--------------------------------------------------------
     
     linkRoleAndUser(TESTDATA_ROLENAME,TESTDATA_USERNAME)
     logout
@@ -144,12 +175,11 @@ class TestModule05 <Test::Unit::TestCase
     login
     @@result,@@msg,@@expected,@@reality=validateLink(TESTDATA_ROLENAME,TESTDATA_USERNAME)
 
-    ###############删除测试数据#################
+    #-----------------删除测试数据----------------------------
     deleteRoles(TESTDATA_ROLENAME)    
-    logout
+    logout    
     
-    
-    #approve 
+    #approve delete roles
     login('secadmin','123456')    
     approveDeleteRoles
     logout
@@ -162,20 +192,15 @@ class TestModule05 <Test::Unit::TestCase
     login('secadmin','123456')
     approveDeleteUser
     logout
+    
     login
     deleteOrganization(TESTDATA_ORGNAME)
-    ########################################
-#    rescue Exception=>$e
-#      errorHandle
+    #--------------------------------------------------------
+   rescue Exception=>$e
+      errorHandle
     end    
   end
   
-  def teardown  
-    super
-    quit
-    writeResult(@@modulename,@@testcase,@@result,@@msg,@@expected,@@reality)
-    @@result=false
-    @@msg='error raised.please check the log.'    
-  end
+
   
 end

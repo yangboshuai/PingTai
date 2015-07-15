@@ -1,92 +1,116 @@
 #!/usr/bin/ruby
 # encoding: utf-8
 
-require 'lib/function.rb'
+require 'lib/function/public.rb'
+require 'lib/function/login.rb'
+require 'lib/function/ffunction.rb'
 require 'lib/variable.rb'
+require 'test/unit'
 
-class TestModule02<Test::Unit::TestCase
-
-  include Function
-
+class TestModule02 <Test::Unit::TestCase
+  
+  include Function::PublicFunction
+  include Function::Login
+  include Function::FFunction
+  
+  #类变量
   @@modulename='TestModule02_function'
   @@testcase=''
   @@result=true
   @@msg=''
   @@expected=''
   @@reality=''
+  
+  #测试数据
+  TESTDATA_FUNCTIONNAME='FunctionTest'
+  TESTDATA_EDITFUNCTIONNAME='EditFunctionTest'
 
   class << self
-    include Function
+      
+    include Function::PublicFunction
+    include Function::Login
+    
     def startup
+    
+      $logger.info(@@modulename+"Started>>>>>>>>>>>>>>>>>>>") 
+      p @@modulename+"Started>>>>>>>>>>>>>>>>>>>"
+          
       createExcel
+      openUrl
+      login
     end
 
     def shutdown
       closeExcel
+      quit
+      
+      $logger.info(@@modulename+"Over<<<<<<<<<<<<<<<<<<<") 
+      p @@modulename+"Over<<<<<<<<<<<<<<<<<<<"        
     end
   end
-  
-  def setup
+
+  def setup #调用父类的setup方法，每次运行测试用例时运行的方法
     super
-    createBeginLog    
-    openUrl
-    login 
+    createBeginLog     
   end
 
-  def test02_001
-    #Add and delete Function test
+  def test02_001   #Add Function test   
    
     @@testcase="test02_001-Add Function test"
-    $logger.info(@@testcase)
-    begin
+    $logger.info @@testcase #记录日志
     
-      addFunction
-      @@result,@@msg,@@expected,@@reality=validateFunction    #验证添加信息
-      deleteFunction      #删除添加的信息  
-
-    rescue Exception=>e
-      puts e.message
-      errorHandle
-    end
-  end
-
-  def test02_002
-  #delete Function test 
-  
-    @@testcase="test02_002-delete Function test"
-    $logger.info(@@testcase)     
     begin    
-      addFunction
-      #删除添加的信息
-      deleteFunction
-      @@result,@@msg,@@expected,@@reality=validateDeleteFunction  
 
-    rescue Exception=>e
-      puts e.message
+      addFunction(TESTDATA_FUNCTIONNAME)
+      
+      @@result,@@msg,@@expected,@@reality=validateFunction(name=TESTDATA_FUNCTIONNAME)    #验证添加信息
+      
+    rescue Exception=>$e
       errorHandle
-    end
+    end    
   end
 
-  def test02_003
-    #add edit delete Function test  
+  def test02_002  #edit Function test  
+    
     
     @@testcase="test02_003-edit Function test"
     $logger.info(@@testcase)
+    
     begin    
-      addFunction
-      editFunction
-      @@result,@@msg,@@expected,@@reality=validateFunction(name='Functiontest2',code='Functiontest2',sOrh='hide',pageTarget='Workspace',pageUrl='2apex.menu.test,iconUrl',iconUrl='2apex.menu.test',iconX='2',iconY='2',description='2')
-      deleteFunction(name='Functiontest2')      
-    rescue Exception=>e
-        puts e.message
+      
+      editFunction(keyword_functionName=TESTDATA_FUNCTIONNAME,name=TESTDATA_EDITFUNCTIONNAME)
+      
+      @@result,@@msg,@@expected,@@reality=validateFunction(name=TESTDATA_EDITFUNCTIONNAME,code='Functiontest2',sOrh='hide',\
+                  pageTarget='Workspace',pageUrl='2apex.menu.test,iconUrl',iconUrl='2apex.menu.test',iconX='2',iconY='2',description='2')
+
+    rescue Exception=>$e
         errorHandle
-    end
+    end    
+  end
+  
+  def test02_003  #delete Function test 
+
+  
+    @@testcase="test02_002-delete Function test"
+    $logger.info(@@testcase)    
+     
+    begin    
+
+      deleteFunction(TESTDATA_EDITFUNCTIONNAME)  #删除添加的信息
+      @@result,@@msg,@@expected,@@reality=validateDeleteFunction(TESTDATA_EDITFUNCTIONNAME)   
+
+    rescue Exception=>$e
+      errorHandle      
+    end    
   end
     
   def teardown  
     super
-    quit
+    gotoHomepage
+    
     writeResult(@@modulename,@@testcase,@@result,@@msg,@@expected,@@reality)
+    assert @@result,@@testcase+"failed"
+    
     @@result=false
     @@msg='error raised.please check the log.'       
   end
